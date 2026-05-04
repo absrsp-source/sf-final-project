@@ -257,3 +257,84 @@ from intervals
 
 
 
+#### Дополнительное задание 2
+
+-- Для выгрузки данных используем SQL-запрос (данные в такой ориентации, чтобы сократить запрос):
+
+with activity as( 
+     select
+        'Problem' as category,
+        extract (hour from created_at) as hour_num,   -- для сортировки
+        extract (hour from created_at) || ':00' as hour_of_day,
+        to_char(created_at, 'FMDay') as day_of_week,
+        user_id
+      from coderun
+      union all
+      select
+        'Problem' as category,
+        extract (hour from created_at) as hour_num,   -- для сортировки
+        extract (hour from created_at) || ':00' as hour_of_day,
+        to_char(created_at, 'FMDay') as day_of_week,
+        user_id
+      from codesubmit
+      union all
+      select
+        'Test' as category,
+        extract (hour from created_at) as hour_num,   -- для сортировки
+        extract (hour from created_at) || ':00' as hour_of_day,
+        to_char(created_at, 'FMDay') as day_of_week,
+        user_id                       
+      from teststart)
+ select 
+    hour_of_day,
+    count (distinct case when day_of_week = 'Monday' then user_id end) as "Пн",
+    count (distinct case when day_of_week = 'Tuesday' then user_id end) as "Вт",
+    count (distinct case when day_of_week = 'Wednesday' then user_id end) as "Ср",
+    count (distinct case when day_of_week = 'Thursday' then user_id end) as "Чт",
+    count (distinct case when day_of_week = 'Friday' then user_id end) as "Пт",
+    count (distinct case when day_of_week = 'Saturday' then user_id end) as "Сб",
+    count (distinct case when day_of_week = 'Sunday' then user_id end) as "Вс"
+ from activity
+ group by hour_of_day, hour_num
+ order by hour_num
+
+
+ -- Дя загрузки данных, построения графика используем код:
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+# Загрузка данных из csv
+df = pd.read_csv('E:\Учеба\Итоговый проект\график.csv', index_col='hour_of_day')
+# Создаём новое окно для графика размером 14x10 дюймов
+plt.figure(figsize=(14, 10))
+# Строим тепловую карту (heatmap) с помощью библиотеки seaborn.
+# df.T — транспонируем DataFrame: дни недели становятся строками, часы — столбцами.
+# annot=True — отображаем значения в ячейках карты.
+# fmt='g' — формат отображения чисел (без лишних нулей).
+# cmap='YlOrRd' — используем цветовую палитру от жёлтого к красному (чем активнее, тем краснее).
+# linewidths=0.5 — добавляем тонкие линии между ячейками для лучшей читаемости.
+# cbar_kws={'label': 'Количество активностей'} — подписываем шкалу цветов.
+# vmin=0, vmax=df.max().max() — задаём диапазон значений для цветовой шкалы (от 0 до максимального значения в таблице).
+sns.heatmap(df.T, annot=True, fmt='g', cmap='YlOrRd',
+            linewidths=0.5, cbar_kws={'label': 'Количество активностей'},
+            vmin=0, vmax=df.max().max())
+# Добавляем заголовок графика.
+plt.title('Тепловая карта активности пользователей\nпо дням недели и часам',
+          fontsize=18, fontweight='bold', pad=20)
+# Подписываем оси графика.
+plt.xlabel('Час дня', fontsize=14, fontweight='bold')
+plt.ylabel('День недели', fontsize=14, fontweight='bold')
+# Поворачиваем подписи по оси X на 45 градусов для лучшей читаемости.
+plt.xticks(rotation=45, ha='right')
+# Автоматически подстраиваем размеры элементов графика, чтобы ничего не обрезалось.
+plt.tight_layout()
+# Сохраняем получившийся график в файл с высоким разрешением (300 dpi).
+plt.savefig('тепл_карта_активности.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+Выводы:
+Тепловая карта показывает, что наиболее эффективным временем для публикации продуктовых анонсов, промо-кампаний и запуска маркетинговых коммуникаций являются дневные и ранние вечерние часы, прежде всего интервал 10:00–13:00, а также, в качестве дополнительного окна, 17:00–19:00. Именно в эти периоды информация о новой подписке, специальных условиях или новых функциях будет охватывать максимальную долю активной аудитории.
+Для технических релизов предпочтительно использовать периоды с наименьшей пользовательской активностью, то есть ночные часы, ориентировочно с 1:00 до 6:00. Это позволит минимизировать риски негативного пользовательского опыта в случае возникновения технических сбоев после выкладки изменений.
